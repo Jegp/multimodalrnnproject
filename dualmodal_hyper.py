@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import numpy
 import numpy as np
-import matplotlib.pyplot as plt
 from keras.preprocessing import sequence
 from keras.datasets import imdb
 from keras.models import Sequential, Model
@@ -51,13 +50,13 @@ def model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_
 
     model_auditory = Sequential()
     model_auditory.add(LSTM(1000, input_shape=(1, max_features_a), return_sequences=True))
-    model_auditory.add(LSTM(800, return_sequences=False))
+    model_auditory.add(LSTM(800, return_sequences=True))
     #model_auditory.add(Dropout({{uniform(0, 1)}}))
     #model_auditory.add(Dense(y_test_a.shape[1]))
 
     model_visual = Sequential()
     model_visual.add(LSTM(210, input_shape=(1, max_features_v), return_sequences=True))
-    model_visual.add(LSTM(120, return_sequences=False))
+    model_visual.add(LSTM(120, return_sequences=True))
     #model_visual.add(Dropout({{uniform(0, 1)}}))
     #model_visual.add(Dense(y)
 
@@ -65,8 +64,11 @@ def model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_
     ## - Sequential cannot be used to concatenate, so we have to use the functional API
     out = Concatenate()([model_auditory.output, model_visual.output])
 
+    out = LSTM({{choice([20, 30, 40, 50, 60, 100])}})(out)
+
     # Avoid overfitting
-    out = Dropout(0.5)(out)
+    #out = Dropout({{uniform(0, 1)}})(concatenated)
+    out = Dropout({{uniform(0, 1)}})(out)
     # Regular dense nn with sigmoid activation function
     out = Dense(y_train_a.shape[1], activation='softmax')(out)
 
@@ -80,23 +82,27 @@ def model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_
     )
 
     ## Early stop
-    early_stopping = EarlyStopping(monitor='val_loss', patience=16)
+    early_stopping = EarlyStopping(monitor='loss', patience=8)
 
     ## Fit model
-    history = model.fit([X_train_a, X_train_v], y_train_a, 
-              batch_size=512,
-              epochs=40,
+    model.fit([X_train_a, X_train_v], y_train_a, 
+              batch_size=128,
+              epochs=500,
               validation_data=([X_test_a, X_test_v], y_test_a),
               callbacks=[early_stopping])
 
-    # summarize history for accuracy
-    plt.plot(history.history['val_acc'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Audio model')
-    plt.xlabel('Epoch')
-    plt.legend(['Accuracy', 'Loss'], loc='upper center')
-    plt.savefig('model_dualmodal.png')
+    ## Extract score)
+    score, acc = model.evaluate([X_test_a, X_test_v], y_test_a, verbose=0)
+
+    print("Accuracy: ", acc)
+
+    return {'loss': -acc, 'status': STATUS_OK, 'model': model}
 
 if __name__ == '__main__':
-    X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_train_v, y_train_v, X_test_v, y_test_v, max_features_v, maxlen_v = data()
-    model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_train_v, y_train_v, X_test_v, y_test_v, max_features_v, maxlen_v)
+    best_run, best_model = optim.minimize(model=model, data=data, algo=tpe.suggest, max_evals=10, trials=Trials())
+    #X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_train_v, y_train_v, X_test_v, y_test_v, max_features_v, maxlen_v = data()
+    #model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_train_v, y_train_v, X_test_v, y_test_v, max_features_v, maxlen_v)
+    #X_train, y_train, X_test, y_test, m, n = data()
+    #print(best_model.evaluate(X_test, y_test))
+    #best_model.evaluate(X_test, y_test)
+    print(best_run)
