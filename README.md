@@ -28,3 +28,9 @@ To run the already optimized files, simply pull this project and run
     python3 dualmodal.py
 
 This example runs the dualmodal model.
+
+### Pre-processing
+To run the pre-processing step, you need to download the GRID dataset (http://spandh.dcs.shef.ac.uk/gridcorpus/)
+into the same folder as this repository. To run the pre-processing, simply run the ``pre_chunks.py`` file:
+
+    python3 pre_chunks.py
