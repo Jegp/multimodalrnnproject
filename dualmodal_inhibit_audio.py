@@ -55,6 +55,7 @@ def model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_
     model_auditory = Sequential()
     model_auditory.add(LSTM(1000, input_shape=(1, max_features_a), return_sequences=True))
     model_auditory.add(LSTM(800, return_sequences=False))
+    model_auditory.add(Dropout(0.8)) # Remove part of the auditory data
 
     model_visual = Sequential()
     model_visual.add(LSTM(210, input_shape=(1, max_features_v), return_sequences=True))
@@ -78,20 +79,23 @@ def model(X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_
       , metrics = ['accuracy', precision, recall, fmeasure]    # Collect accuracy metric 
     )
 
+    ## Early stop
+    early_stopping = EarlyStopping(monitor='val_loss', patience=16)
+
     ## Fit model
     history = model.fit([X_train_a, X_train_v], y_train_a, 
               batch_size=512,
               epochs=50,
               validation_data=([X_test_a, X_test_v], y_test_a),
-              callbacks=[])
+              callbacks=[early_stopping])
 
     # summarize history for accuracy
     plt.plot(history.history['val_acc'])
     plt.plot(history.history['val_loss'])
-    plt.title('Audio and video model')
+    plt.title('Audio and video model, inhibited audio')
     plt.xlabel('Epoch')
     plt.legend(['Accuracy', 'Loss'], loc='upper right')
-    plt.savefig('model_dualmodal.png')
+    plt.savefig('model_dualmodal_inhibit_audio.png')
 
 if __name__ == '__main__':
     X_train_a, y_train_a, X_test_a, y_test_a, max_features_a, maxlen_a, X_train_v, y_train_v, X_test_v, y_test_v, max_features_v, maxlen_v = data()

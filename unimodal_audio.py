@@ -12,6 +12,9 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 from sklearn.externals import joblib
 from keras.utils.np_utils import to_categorical                                                                        
+from keras.utils.vis_utils import model_to_dot
+
+from precision import precision, recall, fmeasure
 
 from hyperopt import Trials, STATUS_OK, tpe
 from hyperas import optim
@@ -55,27 +58,27 @@ def model(X_train, y_train, X_test, y_test, max_features, maxlen):
     model.compile(
         loss='categorical_crossentropy'
       , optimizer='rmsprop'
-      , metrics = ['accuracy']    # Collect accuracy metric 
+      , metrics = ['accuracy', precision, recall, fmeasure]    # Collect accuracy metric 
     )
 
-    ## Early stop
-    early_stopping = EarlyStopping(monitor='val_loss', patience=32)
+    ## Print model as dot
+    dot = model_to_dot(model)
+    dot.write_raw("model_audio.dot")
 
+    ## Early stop
     ## Fit model
     history = model.fit(X_train, y_train, 
               batch_size=256, 
-              epochs=500,
+              epochs=200,
               validation_data=(X_test, y_test),
-              callbacks=[early_stopping])
+              callbacks=[])
 
     # summarize history for accuracy
-    plt.plot(history.history['acc'])
     plt.plot(history.history['val_acc'])
-    plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('Audio model')
     plt.xlabel('Epoch')
-    plt.legend(['Accuracy, train', 'Accuracy, test', 'Loss, train', 'Loss, test'], loc='upper right')
+    plt.legend(['Accuracy', 'Loss'], loc='upper right')
     plt.savefig('model_audio.png')
 
 if __name__ == '__main__':
